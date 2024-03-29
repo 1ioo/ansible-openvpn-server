@@ -1,0 +1,77 @@
+---
+- name: Slurp ca.crt File Contents
+  slurp:
+    src: "{{ pkiDirectory }}/ca.crt"
+  register: caCert
+
+- name: "Slurp {{ certName }}.crt File Contents"
+  slurp:
+    src: "{{ pkiDirectory }}/issued/{{ certName }}.crt"
+  register: clientCert
+
+- name: Slurp {{ certName }}.key File Contents
+  slurp:
+    src: "{{ pkiDirectory }}/private/{{ certName }}.key"
+  register: clientKey
+
+- name: Slurp ta.key File Contents
+  slurp:
+    src: "{{ pkiDirectory }}/ta.key"
+  register: taKey
+
+- name: Slurp Current Config File Contents
+  slurp:
+    src: "/tmp/{{ nameWithExtension }}"
+  register: clientConfig
+
+- name: Embed OpenVPN Server Certificates
+  blockinfile:
+    path: "/tmp/{{ nameWithExtension }}"
+    state: present
+    marker_begin: "{{ item.begin }}"
+    marker_end: '#'
+    content: "{{ item.line }}"
+  when: "item.line not in (clientConfig['content'] | b64decode)"
+  loop:
+    - begin: CA CERT
+      line: |
+        <ca>
+        {{ caCert['content'] | b64decode}}
+        </ca>
+      
+    - begin: TA KEY
+      line: |
+        <tls-auth>
+        {{ taKey['content'] | b64decode }}
+        </tls-auth>
+      
+    - begin: CLIENT CERT
+      line: |
+        <cert>
+        {{ clientCert['content'] | b64decode }}
+        </cert>
+      
+    - begin: CLIENT KEY
+      line: |
+        <key>
+        {{ clientKey['content'] | b64decode }}
+        </key>
+
+- name : Push DNS if Linux Machine
+  blockinfile:
+    path: "/tmp/{{ nameWithExtension }}"
+    state: present
+    marker_begin: "PUSH DNS"
+    marker_end: '#'
+    content: |
+      script-security 2
+      up /etc/openvpn/update-systemd-resolved
+      up-restart
+      down /etc/openvpn/update-systemd-resolved
+      down-pre
+      dhcp-option DOMAIN-ROUTE .
+  when: "'.conf' in nameWithExtension"
+
+- name: Success Message
+  debug:
+    msg: "Client Config File successfully configured at /tmp/{{ nameWithExtension }}"

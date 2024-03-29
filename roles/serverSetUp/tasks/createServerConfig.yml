@@ -1,0 +1,35 @@
+---
+- name: Check if OpenVPN Server Configuration Exists
+  stat:
+    path: "{{ serverConfigPath }}"
+  register: file_info
+
+- name: Copy OpenVPN Server Configuration
+  copy:
+    src: /usr/share/doc/openvpn/examples/sample-config-files/server.conf
+    dest: "{{ serverDirectory }}"
+    remote_src: true
+    owner: root
+    group: root
+  when: not file_info.stat.exists
+
+
+- name: Edit OpenVPN Server Configuration
+  lineinfile:
+    path: "{{ serverConfigPath }}"
+    regexp: "{{ item.search }}"
+    line: "{{ item.line }}"
+    state: present
+  loop:
+    - {search: ^port, line: "port {{ openvpnPort}}"}
+    - {search: ^;push "redirect-gateway, line: push "redirect-gateway def1 bypass-dhcp"}
+    - {search: ^cipher, line: cipher AES-256-GCM}
+    - {search: ^;log-append, line: log-append /var/log/openvpn/openvpn.log}
+    - {search: ^ca ca.crt, line: ''}
+    - {search: ^cert, line: ''}
+    - {search: ^key, line: ''}
+    - {search: ^dh, line: ''}
+    - {search: ^tls-auth, line: ''}
+  notify: Restart OpenVPN
+
+- include_tasks: embedCertificates.yml

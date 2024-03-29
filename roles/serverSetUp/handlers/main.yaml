@@ -1,0 +1,16 @@
+---
+- name: Restart SSH
+  service:
+    name: ssh
+    state: restarted
+
+- name: Restart OpenVPN
+  service:
+    name: openvpn-server@server
+    daemon_reload: true
+    state: restarted
+
+- name: Restart Fail2Ban
+  service:
+    name: fail2ban
+    state: restarted

@@ -1,0 +1,22 @@
+---
+- name: Upload CRL
+  command:
+    cmd: "./easyrsa gen-crl"
+    chdir: "/usr/share/easy-rsa"
+  listen: Revoke Cert
+
+- name: Add CRL Location
+  blockinfile:
+    path: "{{ serverDirectory }}/server.conf"
+    state: present
+    marker_begin: "ADD CRL"
+    marker_end: '#'
+    content: "crl-verify {{ pkiDirectory }}/crl.pem"
+  listen: Revoke Cert
+  
+- name: Restart OpenVPN
+  service:
+    name: openvpn-server@server
+    daemon_reload: true
+    state: restarted
+  listen: Revoke Cert

@@ -1,0 +1,83 @@
+---
+- name: Slurp ca.crt File Contents
+  slurp:
+    src: "{{ pkiDirectory + '/ca.crt'}}"
+  register: caCert
+
+- name: Slurp server.crt File Contents
+  slurp:
+    src: "{{ pkiDirectory + '/issued/server.crt'}}"
+  register: serverCert
+
+- name: Slurp server.key File Contents
+  slurp:
+    src: "{{ pkiDirectory + '/private/server.key'}}"
+  register: serverKey
+
+- name: Slurp ta.key File Contents
+  slurp:
+    src: "{{ pkiDirectory + '/ta.key'}}"
+  register: taKey
+
+- name: Slurp dh.pem File Contents
+  slurp:
+    src: "{{ pkiDirectory + '/dh.pem'}}"
+  register: dhPem
+
+- name: Slurp Current Config File Contents
+  slurp:
+    src: "{{ serverConfigPath }}"
+  register: serverConfig
+
+- name: Embed OpenVPN Server Certificates
+  blockinfile:
+    path: "{{ serverConfigPath }}"
+    state: present
+    marker_begin: "{{ item.begin }}"
+    marker_end: '#'
+    content: "{{ item.line }}"
+  when: "item.line not in (serverConfig['content'] | b64decode)"
+    
+  loop:
+    - begin: CA CERT
+      line: |
+        <ca>
+        {{ caCert['content'] | b64decode}}
+        </ca>
+      
+    - begin: TA KEY
+      line: |
+        <tls-auth>
+        {{ taKey['content'] | b64decode }}
+        </tls-auth>
+      
+    - begin: DH PEM
+      line: |
+        <dh>
+        {{ dhPem['content'] | b64decode }}
+        </dh>
+      
+    - begin: SERVER CERT
+      line: |
+        <cert>
+        {{ serverCert['content'] | b64decode }}
+        </cert>
+      
+    - begin: SERVER KEY
+      line: |
+        <key>
+        {{ serverKey['content'] | b64decode }}
+        </key>
+      
+    - begin: PUSH DNS
+      line: |
+        push "dhcp-option DNS {{ dnsServer1 }}"
+        push "dhcp-option DNS {{ dnsServer2 }}"
+      
+  notify: Restart OpenVPN
+
+- name: Start OpenVPN-Server
+  service:
+    name: openvpn-server@server
+    state: started
+    enabled: true

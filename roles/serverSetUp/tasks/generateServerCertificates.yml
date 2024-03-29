@@ -1,0 +1,46 @@
+---
+- name: Initialize PKI
+  command:
+    chdir: "{{ easyrsaDirectory }}"
+    cmd: ./easyrsa init-pki
+    creates: "{{ pkiDirectory }}"
+
+- name: Build CA
+  expect:
+    command: sudo ./easyrsa build-ca nopass
+    chdir: "{{ easyrsaDirectory }}"
+    creates: "{{ pkiDirectory }}/ca.crt"
+    responses:
+      "Common Name*": "server"
+
+- name: Generate Server Certificate
+  expect:
+    command: sudo ./easyrsa build-server-full server nopass
+    chdir: "{{ easyrsaDirectory }}"
+    responses:
+      "Confirm*": "yes"
+    creates: "{{ pkiDirectory }}/issued/server.crt"
+
+- name: Generate DH Parameter
+  command:
+    chdir: "{{ easyrsaDirectory }}"
+    cmd: sudo ./easyrsa gen-dh
+    creates: "{{ pkiDirectory }}/dh.pem"
+
+- name: Generate TLS-AUTH Key
+  command:
+    chdir: "{{ easyrsaDirectory }}"
+    cmd: sudo openvpn --genkey secret ./pki/ta.key
+    creates: "{{ pkiDirectory }}/ta.key"
+
+- name: Copy Relevant Files and Folders
+  copy:
+    src: "{{ item }}"
+    dest: "{{ serverDirectory }}"
+    remote_src: true
+  loop:
+    - "{{ pkiDirectory }}/issued"
+    - "{{ pkiDirectory }}/private"
+    - "{{ pkiDirectory }}/ca.crt"
+    - "{{ pkiDirectory }}/dh.pem"
+    - "{{ pkiDirectory }}/ta.key"

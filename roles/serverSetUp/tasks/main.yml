@@ -1,0 +1,36 @@
+---
+- name: Update and Upgrade system
+  apt:
+    upgrade: true
+    update_cache: true
+
+- name: Install Packages
+  package:
+    name:
+      - easy-rsa
+      - iptables
+      - iptables-persistent
+      - openvpn
+      - fail2ban
+      - rsyslog
+      - python3-pexpect
+    state: present
+
+- name: Server Hardening
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    search_string: "{{ item.search }}"
+    line: "{{ item.line }}"
+    state: present
+  loop:
+    - {search: Port 22, line: "Port {{ sshPort }}"}
+    - {search: "#LogLevel INFO", line: LogLevel INFO}
+    - {search: "#PermitRootLogin prohibit-password", line: PermitRootLogin no}
+    - {search: "X11Forwarding yes", line: X11Forwarding no}
+  notify: Restart SSH
+
+- include_tasks: generateServerCertificates.yml
+- include_tasks: createServerConfig.yml
+- include_tasks: ipForward.yml
+- include_tasks: setUpIPTables.yml
+- include_tasks: setUpFail2Ban.yml

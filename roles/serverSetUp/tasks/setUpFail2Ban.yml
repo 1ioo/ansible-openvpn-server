@@ -1,0 +1,34 @@
+---
+- name: Configure Jail
+  copy:
+    dest: /etc/fail2ban/jail.local
+    content: |
+      [default]
+      maxretry = 3
+      bantime = 60
+      [sshd]
+      enabled = true
+      port = 2244
+      filter = sshd
+      logpath = /var/log/auth.log
+      [openvpn]
+      enabled = true
+      port = 2876
+      filter = openvpn
+      logpath = /var/log/openvpn/openvpn.log
+  notify: Restart Fail2Ban
+
+- name: Create Filter
+  copy:
+    dest: /etc/fail2ban/filter.d/openvpn.conf
+    content: |
+      [Definition]
+      failregex = TLS Error: incoming packet authentication failed from \[AF_INET\]<HOST>:\d+
+      ignoreregex = 
+  notify: Restart Fail2Ban 
+
+- name: Start Fail2Ban
+  service:
+    name: fail2ban
+    state: started
+    enabled: true

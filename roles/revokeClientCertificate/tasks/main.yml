@@ -1,0 +1,15 @@
+---
+- name: Prompt for Name of Client
+  pause:
+    prompt: Name of Client > 
+  register: certName
+
+- name: Revoke Certificate
+  expect:
+    command: "./easyrsa revoke {{ certName.user_input | lower }}"
+    chdir: /usr/share/easy-rsa
+    responses: 
+      "Continue with*": "yes"
+    removes: "/usr/share/easy-rsa/pki/issued/{{ certName.user_input | lower }}.crt"
+  notify: Revoke Cert
+

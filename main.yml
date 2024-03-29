@@ -1,0 +1,47 @@
+---
+- name: OpenVPN Server Menu
+  become: true
+  vars:
+    menu:
+      - option: 1
+        name: "Set Up OpenVPNServer"
+      - option: 2
+        name: "Create Client Certificates"
+      - option: 3
+        name: "Revoke Client Certificate"
+  hosts: openvpn
+  tasks:
+    - name: OPENVPN SERVER
+      pause:
+        prompt: |-
+          #################################################################################
+          #################################################################################
+          ##   ___                __     ______  _   _   ____                            ##
+          ##  / _ \ _ __   ___ _ _\ \   / /  _ \| \ | | / ___|  ___ _ ____   _____ _ __  ##
+          ## | | | | '_ \ / _ \ '_ \ \ / /| |_) |  \| | \___ \ / _ \ '__\ \ / / _ \ '__| ##
+          ## | |_| | |_) |  __/ | | \ V / |  __/| |\  |  ___) |  __/ |   \ V /  __/ |    ##
+          ##  \___/| .__/ \___|_| |_|\_/  |_|   |_| \_| |____/ \___|_|    \_/ \___|_|    ##
+          ##       |_|                                                                   ##
+          #################################################################################
+          ################################################################################# 
+          =================================================================================
+          {% for option in menu %}
+          {{ option.option }}- {{ option.name }}
+          {% endfor %}
+          Enter Choice >
+      register: result
+      
+    - name: Set up OpenVPN Server
+      include_role:
+        name: serverSetUp
+      when: result.user_input == "1"
+      
+    - name: Create Client Certificates
+      include_role:
+        name: createClientCertificate
+      when: result.user_input == "2"
+      
+    - name: Revoke Client Certificate
+      include_role:
+        name: revokeClientCertificate
+      when: result.user_input == "3"

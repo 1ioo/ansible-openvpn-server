@@ -1,0 +1,4 @@
+---
+serverDirectory: /etc/openvpn/server
+pkiDirectory: /usr/share/easy-rsa/pki
+  

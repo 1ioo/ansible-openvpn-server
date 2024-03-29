@@ -1,0 +1,13 @@
+---
+serverDirectory: /etc/openvpn/server
+serverConfigPath: /etc/openvpn/server/server.conf
+pkiDirectory: /usr/share/easy-rsa/pki
+easyrsaDirectory: /usr/share/easy-rsa
+chains:
+  - INPUT
+  - OUTPUT
+sshPort: "2244"
+openvpnPort: "2876"
+dnsServer1: "8.8.8.8"
+dnsServer2: "1.1.1.1"
+ipv4Interface: enX0

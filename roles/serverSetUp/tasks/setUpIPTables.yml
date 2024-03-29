@@ -1,0 +1,105 @@
+---
+- name: Change rules.v4 Permissions
+  file:
+    path: /etc/iptables/rules.v4
+    owner: root
+    group: root
+    mode: '664'
+
+- name: Accept Loopback on INPUT chain
+  iptables:
+    chain: INPUT
+    jump: ACCEPT
+    in_interface: lo
+    comment: Accept Loopback
+
+- name: Accept Loopback on OUTPUT chain
+  iptables:
+    chain: OUTPUT
+    jump: ACCEPT
+    out_interface: lo
+    comment: Accept Loopback
+
+- name: Accept ESTABLISHED/RELATED on INPUT and OUTPUT chain
+  iptables:
+    chain: "{{ item }}"
+    jump: ACCEPT
+    ctstate: ESTABLISHED,RELATED
+    comment: Accept ESTABLISHED/RELATED Packets
+  loop: "{{ chains }}"
+
+- name: Accept ICMP on INPUT and OUTPUT chain
+  iptables:
+    chain: "{{ item }}"
+    jump: ACCEPT
+    protocol: icmp
+    comment: Allow ICMP
+  loop: "{{ chains }}"
+
+- name: Accept TCP DNS Ports
+  iptables:
+    chain: "{{ item }}"
+    jump: ACCEPT
+    protocol: tcp
+    destination_ports: 53
+    comment: Allow DNS
+  loop: "{{ chains }}"
+
+- name: Accept UDP DNS Ports
+  iptables:
+    chain: "{{ item }}"
+    jump: ACCEPT
+    protocol: udp
+    destination_ports: 53
+    comment: Allow DNS
+  loop: "{{ chains }}"
+
+- name: Accept SSH on INPUT chain
+  iptables:
+    chain: INPUT
+    jump: ACCEPT
+    protocol: tcp
+    destination_ports: 2244
+    comment: Allow SSH
+
+- name: Accept OpenVPN on INPUT chain
+  iptables:
+    chain: INPUT
+    jump: ACCEPT
+    protocol: udp
+    destination_ports: 2876
+    comment: Allow OpenVPN
+
+- name: Accept HTTP and HTTPS on OUTPUT chain
+  iptables:
+    chain: OUTPUT
+    jump: ACCEPT
+    protocol: tcp
+    destination_ports:
+      - 80
+      - 443
+    comment: Allow HTTP and HTTPS
+
+- name: Accept FORWARD
+  iptables:
+    chain: FORWARD
+    jump: ACCEPT
+    in_interface: tun0
+
+- name: Add iptables NAT rule for POSTROUTING
+  iptables:
+    table: nat
+    chain: POSTROUTING
+    out_interface: "{{ ipv4Interface }}"
+    jump: MASQUERADE
+
+- name: Set Policy for INPUT and OUTPUT chain
+  iptables:
+    chain: "{{ item }}"
+    policy: DROP
+  loop: "{{ chains }}"
+
+- name: Save IPTables
+  community.general.iptables_state:
+    state: saved
+    path: /etc/iptables/rules.v4

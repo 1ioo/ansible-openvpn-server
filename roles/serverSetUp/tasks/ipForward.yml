@@ -1,0 +1,25 @@
+---
+- name: Create Enable IP Forwarding Script
+  copy:
+    dest: "{{ serverDirectory }}/enableIPForward.sh"
+    mode: '700'
+    content: |
+      #!/bin/bash
+      echo 1 > /proc/sys/net/ipv4/ip_forward
+
+- name: Create Disable IP Forwarding Script
+  copy:
+    dest: "{{ serverDirectory }}/disableIPForward.sh"
+    mode: '700'
+    content: |
+      #!/bin/bash
+      echo 0 > /proc/sys/net/ipv4/ip_forward
+
+- name: Append Scripts to Service Configuration
+  blockinfile:
+    path: /lib/systemd/system/openvpn-server@.service
+    insertafter: ^Restart=on-failure
+    block: |
+      ExecStartPost={{ serverDirectory }}/enableIPForward.sh
+      ExecStopPost={{ serverDirectory }}/disableIPForward.sh
+  notify: Restart OpenVPN

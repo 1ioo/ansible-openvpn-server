@@ -1,0 +1,5 @@
+---
+serverDirectory: /etc/openvpn/server
+pkiDirectory: /usr/share/easy-rsa/pki
+openvpnPort: "2876"
+openvpnIP: "52.62.2.152"

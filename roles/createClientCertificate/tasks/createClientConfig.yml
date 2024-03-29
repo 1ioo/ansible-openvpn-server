@@ -1,0 +1,39 @@
+---
+- name: Generate Client Certificates
+  expect:
+    command: "sudo ./easyrsa build-client-full {{ certName }} nopass"
+    chdir: /usr/share/easy-rsa
+    responses:
+      "Confirm*": "yes"
+    creates: "{{ pkiDirectory }}/issued/{{ certName }}.crt"
+
+- name: Check if OpenVPN Client Configuration Exists
+  stat:
+    path: "/tmp/{{ nameWithExtension }}"
+  register: file_info
+
+- name: Copy Client Configuration File
+  copy:
+    src: /usr/share/doc/openvpn/examples/sample-config-files/client.conf
+    dest: "/tmp/{{ nameWithExtension }}"
+    remote_src: true
+    mode: '755'
+    owner: root
+    group: root
+  when: not file_info.stat.exists
+
+- name: Edit Client Configurations
+  lineinfile:
+    path: "/tmp/{{ nameWithExtension }}"
+    regexp: "{{ item.search }}"
+    line: "{{ item.line }}"
+    state: present
+  loop:
+    - {search: ^remote my-server, line: "remote {{ openvpnIP }} {{ openvpnPort }}"}
+    - {search: ^cipher, line: cipher AES-256-GCM}
+    - {search: ^ca, line: ''}
+    - {search: ^cert, line: ''}
+    - {search: ^key, line: ''}
+    - {search: ^tls-auth, line: ''}
+
+- include_tasks: embedCertificates.yml

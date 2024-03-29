@@ -1,0 +1,17 @@
+---
+- name: Prompt for Name of Client
+  pause:
+    prompt: Name of Client > 
+  register: certName
+
+- name: Prompt for OS of Client
+  pause:
+    prompt: Enter Operating System for Certificate to be used on (Linux/Windows) > 
+  register: clientOS
+
+- name: Set Facts/Variables
+  set_fact:
+    nameWithExtension: "{{ certName.user_input | lower }}{{ '.conf' if clientOS.user_input | lower == 'linux' else '.ovpn'}}"
+    certName: "{{ certName.user_input | lower }}"
+
+- include_tasks: createClientConfig.yml
